@@ -3,57 +3,42 @@ import time
 import os
 import HandTrackingModule as htm
 
-wCam, hCam = 1280, 960
+wCam, hCam = 1280, 720
 cap = cv2.VideoCapture(0)
 cap.set(3, wCam)
 cap.set(4, hCam)
 
+# image output
 folderPath = "Numbers"
 myList = os.listdir(folderPath)
-print(myList)
+# print(myList) images in folder
 overlaylist = []
 for imPath in myList:
     image = cv2.imread(f'{folderPath}/{imPath}')
     overlaylist.append(image)
+# print(len(overlaylist)) number of images
 
-print(len(overlaylist))
 pTime = 0
+detector = htm.HandDetector(detectionCon=0.7)
 
-detector = htm.handDetector(detectionCon=0.8)
-
-
-tipIDs = [4, 8, 12, 16, 20]
+tipIds = [4, 8, 12, 16, 20]
 
 while True:
     success, img = cap.read()
-    img = detector.findHands(img)
-    lmList = detector.findPosition(img, draw=False)
-    # print(lmList)
+    img = detector.findhands(img)
+    lmList, bbox = detector.findposition(img)
 
     if len(lmList) != 0:
-        fingers = []
-        # Thumb
-        if lmList[4][1] < lmList[3][1]:
-            fingers.append(1)
-        else:
-            fingers.append(0)
+        fingers = detector.fingersup()
+        totalFingers = fingers.count(1)  # how many ones i.e. fingers up
+        # print(totalFingers)
 
-        # Fingers
-        for id in range(1, 5):
-            if lmList[tipIDs[id]][2] < lmList[tipIDs[id]-2][2]:
-                fingers.append(1)
-            else:
-                fingers.append(0)
-
-        # print(fingers)
-        totalFingers = fingers.count(1)
-        print(totalFingers)
-
-        h, w, c = overlaylist[totalFingers -1].shape
-        img[0:h, 0:w] = overlaylist[totalFingers -1]
+        h, w, c = overlaylist[totalFingers - 1].shape  # which image to choose from folder
+        img[0:h, 0:w] = overlaylist[totalFingers - 1]  # where to put image
 
     cTime = time.time()
-    fps = 1/(cTime-pTime)
+    if cTime - pTime > 0:
+        fps = 1 / (cTime - pTime)
     pTime = cTime
     cv2.putText(img, f'FPS: {int(fps)}', (800, 60), cv2.FONT_HERSHEY_SIMPLEX,
                 2, (100, 150, 100), 3)
